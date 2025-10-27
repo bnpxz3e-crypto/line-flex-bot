@@ -1,0 +1,13 @@
+{
+  "name": "line-flex-bot",
+  "version": "1.0.0",
+  "description": "LINE Flex Bot by Nutthawut",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@line/bot-sdk": "^10.4.0",
+    "express": "^5.1.0"
+  }
+}
