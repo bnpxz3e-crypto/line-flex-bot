@@ -70,36 +70,35 @@ app.post("/webhook", line.middleware(config), async (req, res) => {
       }
 
       // ✅ ssl
-      else if (msg === "ssl") {
-        const domain = "line-flex-bot-dmrl.onrender.com";
-        try {
-          const output = execSync(
-            `echo | openssl s_client -servername ${domain} -connect ${domain}:443 2>/dev/null | openssl x509 -noout -dates`
-          )
-            .toString()
-            .trim();
+// ✅ ตรวจสอบวันหมดอายุ SSL แบบไม่ใช้ openssl
+else if (msg === "ssl") {
+  const domain = "line-flex-bot-dmrl.onrender.com"; // ❗ ไม่ใส่ https://
+  const https = require("https");
 
-          const expire = output
-            .split("\n")
-            .find((line) => line.startsWith("notAfter"))
-            .replace("notAfter=", "")
-            .trim();
-
-          await client.replyMessage(event.replyToken, {
-            type: "text",
-            text: `📅 ใบรับรอง SSL ของโดเมน:\n🔗 ${domain}\nหมดอายุวันที่:\n🕒 ${expire}`,
-          });
-        } catch (err) {
-          await client.replyMessage(event.replyToken, {
-            type: "text",
-            text: "❌ ไม่สามารถตรวจสอบ SSL ได้ (อาจยังไม่มีใบรับรองหรือโดเมนไม่พร้อม)",
-          });
-        }
+  https
+    .get(`https://${domain}`, (res) => {
+      const cert = res.socket.getPeerCertificate();
+      if (!cert || !cert.valid_to) {
+        client.replyMessage(event.replyToken, {
+          type: "text",
+          text: "❌ ไม่พบใบรับรอง SSL หรือไม่สามารถอ่านได้",
+        });
+        return;
       }
-    }
-  }
-  res.status(200).end();
-});
+
+      // ✅ แสดงวันหมดอายุ
+      client.replyMessage(event.replyToken, {
+        type: "text",
+        text: `📅 ใบรับรอง SSL ของโดเมน:\n🔗 https://${domain}\nหมดอายุวันที่:\n🕒 ${cert.valid_to}`,
+      });
+    })
+    .on("error", (e) => {
+      client.replyMessage(event.replyToken, {
+        type: "text",
+        text: `❌ เกิดข้อผิดพลาด: ${e.message}`,
+      });
+    });
+}
 
 // ===== ฟังก์ชันส่ง Flex Image =====
 async function sendImageFlex(replyToken, imageUrl, altText) {
