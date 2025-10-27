@@ -60,6 +60,14 @@ app.post("/webhook", line.middleware(config), async (req, res) => {
           "ปิดรับฮานอยอาเซียน"
         );
       }
+      
+      else if (msg === ".นอ") {
+        await sendImageFlex(
+          event.replyToken,
+          "https://raw.githubusercontent.com/bnpxz3e-crypto/flex/main/nos.png",
+          "ปิดรับฮานอยอาเซียน"
+        );
+      }
 
       // ✅ ssl
       else if (msg === "ssl") {
