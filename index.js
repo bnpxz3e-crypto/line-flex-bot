@@ -63,7 +63,7 @@ app.post("/webhook", line.middleware(config), async (req, res) => {
 
       // ✅ ssl
       else if (msg === "ssl") {
-        const domain = "https://line-flex-bot-dmrl.onrender.com";
+        const domain = "line-flex-bot-dmrl.onrender.com";
         try {
           const output = execSync(
             `echo | openssl s_client -servername ${domain} -connect ${domain}:443 2>/dev/null | openssl x509 -noout -dates`
