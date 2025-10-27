@@ -4,7 +4,7 @@
 
 const express = require("express");
 const line = require("@line/bot-sdk");
-const { execSync } = require("child_process");
+const https = require("https");
 
 const app = express();
 
@@ -60,51 +60,50 @@ app.post("/webhook", line.middleware(config), async (req, res) => {
           "ปิดรับฮานอยอาเซียน"
         );
       }
-      
-      else if (msg === ".นอ") {
-        await sendImageFlex(
-          event.replyToken,
-          "https://raw.githubusercontent.com/bnpxz3e-crypto/flex/main/nos.png",
-          "ปิดรับฮานอยอาเซียน"
-        );
+
+      // ✅ ssl — ตรวจสอบใบรับรอง SSL
+      else if (msg === "ssl") {
+        const domain = "line-flex-bot-dmrl.onrender.com";
+
+        https
+          .get(`https://${domain}`, (res) => {
+            const cert = res.socket.getPeerCertificate();
+            if (!cert || !cert.valid_to) {
+              client.replyMessage(event.replyToken, {
+                type: "text",
+                text: "❌ ไม่พบใบรับรอง SSL หรือไม่สามารถอ่านได้",
+              });
+              return;
+            }
+
+            // 🕒 แสดงวันหมดอายุ SSL
+            const expireDate = new Date(cert.valid_to);
+            const daysLeft = Math.round(
+              (expireDate - new Date()) / (1000 * 60 * 60 * 24)
+            );
+
+            client.replyMessage(event.replyToken, {
+              type: "text",
+              text: `📅 ใบรับรอง SSL ของโดเมน:\n🔗 https://${domain}\nหมดอายุวันที่:\n🕒 ${cert.valid_to}\n⏳ เหลืออีก ${daysLeft} วัน`,
+            });
+          })
+          .on("error", (e) => {
+            client.replyMessage(event.replyToken, {
+              type: "text",
+              text: `❌ เกิดข้อผิดพลาด: ${e.message}`,
+            });
+          });
       }
-
-      // ✅ ssl
-// ✅ ตรวจสอบวันหมดอายุ SSL แบบไม่ใช้ openssl
-else if (msg === "ssl") {
-  const domain = "line-flex-bot-dmrl.onrender.com"; // ❗ ไม่ใส่ https://
-  const https = require("https");
-
-  https
-    .get(`https://${domain}`, (res) => {
-      const cert = res.socket.getPeerCertificate();
-      if (!cert || !cert.valid_to) {
-        client.replyMessage(event.replyToken, {
-          type: "text",
-          text: "❌ ไม่พบใบรับรอง SSL หรือไม่สามารถอ่านได้",
-        });
-        return;
-      }
-
-      // ✅ แสดงวันหมดอายุ
-      client.replyMessage(event.replyToken, {
-        type: "text",
-        text: `📅 ใบรับรอง SSL ของโดเมน:\n🔗 https://${domain}\nหมดอายุวันที่:\n🕒 ${cert.valid_to}`,
-      });
-    })
-    .on("error", (e) => {
-      client.replyMessage(event.replyToken, {
-        type: "text",
-        text: `❌ เกิดข้อผิดพลาด: ${e.message}`,
-      });
-    });
-}
+    }
+  }
+  res.status(200).end();
+});
 
 // ===== ฟังก์ชันส่ง Flex Image =====
 async function sendImageFlex(replyToken, imageUrl, altText) {
   const flexMsg = {
     type: "flex",
-    altText: altText, // ✅ altText แตกต่างกันในแต่ละคำสั่ง
+    altText: altText,
     contents: {
       type: "bubble",
       size: "giga",
